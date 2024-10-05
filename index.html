@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Modern Logging App with Voice Input Modes</title>
+    <!-- Include Google Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto&display=swap">
+    <!-- Include Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        /* Reset and Basic Styling */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 0 20px;
+        }
+        /* Controls Section */
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        .controls button {
+            background-color: #1f1f1f;
+            color: #e0e0e0;
+            border: 1px solid #333;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .controls button:hover {
+            background-color: #2979ff;
+            color: #ffffff;
+        }
+        .controls button:disabled {
+            background-color: #555;
+            color: #888;
+            cursor: not-allowed;
+        }
+        .material-icons {
+            font-size: 20px;
+        }
+        /* Toggle Switch Styling */
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+        }
+        .toggle-switch input[type="checkbox"] {
+            width: 40px;
+            height: 20px;
+            -webkit-appearance: none;
+            background-color: #555;
+            outline: none;
+            border-radius: 20px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .toggle-switch input[type="checkbox"]:checked {
+            background-color: #2979ff;
+        }
+        .toggle-switch input[type="checkbox"]::before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background-color: #e0e0e0;
+            border-radius: 50%;
+            top: 1px;
+            left: 1px;
+            transition: transform 0.3s ease;
+        }
+        .toggle-switch input[type="checkbox"]:checked::before {
+            transform: translateX(20px);
+        }
+        /* Input Area */
+        #logInput {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            border: 1px solid #333;
+            border-radius: 8px;
+            resize: none;
+            height: 120px;
+            margin-top: 20px;
+        }
+        #logInput:focus {
+            outline: none;
+            border-color: #2979ff;
+            box-shadow: 0 0 0 2px rgba(41, 121, 255, 0.2);
+        }
+        /* Logs Section */
+        #logs {
+            margin-top: 30px;
+        }
+        .logEntry {
+            background-color: #1e1e1e;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2979ff;
+            border-radius: 8px;
+            position: relative;
+            transition: background-color 0.3s ease;
+        }
+        .logEntry:hover {
+            background-color: #252525;
+        }
+        .timestamp {
+            color: #757575;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+        .logText {
+            white-space: pre-wrap;
+            font-size: 16px;
+        }
+        /* Edit and Delete Buttons */
+        .edit-button, .delete-button {
+            position: absolute;
+            top: 15px;
+            background: none;
+            border: none;
+            color: #bdbdbd;
+            cursor: pointer;
+            font-size: 24px;
+            transition: color 0.3s ease;
+        }
+        .edit-button {
+            right: 50px;
+        }
+        .delete-button {
+            right: 15px;
+        }
+        .edit-button:hover, .delete-button:hover {
+            color: #ffffff;
+        }
+        /* Image Styling */
+        img {
+            max-width: 100%;
+            margin-top: 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+        /* Scrollbar Styles */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #424242;
+            border-radius: 5px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #616161;
+        }
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            .controls {
+                flex-direction: column;
+            }
+            .controls button {
+                flex: 1 1 100%;
+            }
+            .edit-button, .delete-button {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="controls">
+            <button id="voiceInputBtn"><span class="material-icons">mic</span> Voice Input</button>
+            <div class="toggle-switch">
+                <label for="previewModeToggle">Preview Mode</label>
+                <input type="checkbox" id="previewModeToggle">
+            </div>
+            <button id="downloadBtn"><span class="material-icons">download</span> Download Logs</button>
+            <button id="clearLogsBtn"><span class="material-icons">delete_sweep</span> Clear Logs</button>
+        </div>
+        <textarea id="logInput" placeholder="Type your log here... (Press Enter to submit, Shift+Enter for a new line)"></textarea>
+        <div id="logs"></div>
+    </div>
+    <script>
+        // JavaScript Functionality with localStorage
+        const logInput = document.getElementById('logInput');
+        const logs = document.getElementById('logs');
+        const voiceInputBtn = document.getElementById('voiceInputBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const clearLogsBtn = document.getElementById('clearLogsBtn');
+        const previewModeToggle = document.getElementById('previewModeToggle');
+
+        // Load logs from localStorage on page load
+        window.onload = function() {
+            const storedLogs = JSON.parse(localStorage.getItem('logs')) || [];
+            storedLogs.forEach(function(log) {
+                addLogEntry(log.text, log.timestamp, log.imageSrc, false);
+            });
+        };
+
+        function saveLogsToStorage() {
+            const logEntries = [];
+            const entries = logs.querySelectorAll('.logEntry');
+            entries.forEach(function(entry) {
+                const timestamp = entry.querySelector('.timestamp').textContent;
+                const logText = entry.querySelector('.logText').textContent;
+                const img = entry.querySelector('img');
+                const imageSrc = img ? img.src : null;
+                logEntries.push({ timestamp, text: logText, imageSrc });
+            });
+            localStorage.setItem('logs', JSON.stringify(logEntries));
+        }
+
+        function addLogEntry(text, timestamp = new Date().toLocaleString(), imageSrc = null, save = true) {
+            if (text.trim() === '' && !imageSrc) {
+                alert('Please enter a log message or add an image.');
+                return;
+            }
+
+            const logEntry = document.createElement('div');
+            logEntry.className = 'logEntry';
+
+            const timestampDiv = document.createElement('div');
+            timestampDiv.className = 'timestamp';
+            timestampDiv.textContent = timestamp;
+
+            const logTextDiv = document.createElement('div');
+            logTextDiv.className = 'logText';
+            logTextDiv.contentEditable = true;
+            logTextDiv.textContent = text;
+
+            // Edit and Delete Buttons
+            const editButton = document.createElement('button');
+            editButton.className = 'edit-button material-icons';
+            editButton.textContent = 'edit';
+            editButton.title = 'Edit Log';
+            editButton.onclick = function() {
+                logTextDiv.contentEditable = true;
+                logTextDiv.focus();
+            };
+
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'delete-button material-icons';
+            deleteButton.textContent = 'delete';
+            deleteButton.title = 'Delete Log';
+            deleteButton.onclick = function() {
+                logs.removeChild(logEntry);
+                saveLogsToStorage();
+            };
+
+            logEntry.appendChild(timestampDiv);
+            logEntry.appendChild(logTextDiv);
+
+            if (imageSrc) {
+                const img = document.createElement('img');
+                img.src = imageSrc;
+                logEntry.appendChild(img);
+            }
+
+            logEntry.appendChild(editButton);
+            logEntry.appendChild(deleteButton);
+
+            logs.prepend(logEntry);
+            logInput.value = '';
+
+            if (save) {
+                saveLogsToStorage();
+            }
+        }
+
+        // Submit log on Enter key, allow new line with Shift+Enter
+        logInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                addLogEntry(logInput.value);
+            }
+        });
+
+        // Keyboard shortcut: Ctrl+L to focus on the log input
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key.toLowerCase() === 'l') {
+                e.preventDefault();
+                logInput.focus();
+            }
+        });
+
+        // Voice Input Functionality with Modes
+        let recognition;
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = function(event) {
+                const speechResult = event.results[0][0].transcript;
+
+                if (previewModeToggle.checked) {
+                    // Preview Mode: Place text in input box
+                    logInput.value = speechResult;
+                    logInput.focus();
+                } else {
+                    // Immediate Submission Mode: Add log entry directly
+                    addLogEntry(speechResult);
+                }
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error:', event.error);
+            };
+        } else {
+            voiceInputBtn.disabled = true;
+            voiceInputBtn.innerHTML = '<span class="material-icons">mic_off</span> Voice Input Not Supported';
+        }
+
+        voiceInputBtn.addEventListener('click', function() {
+            if (recognition) {
+                recognition.start();
+            }
+        });
+
+        // Download Logs Functionality
+        downloadBtn.addEventListener('click', function() {
+            let logContent = '';
+            const logEntries = logs.querySelectorAll('.logEntry');
+            logEntries.forEach(function(entry) {
+                const timestamp = entry.querySelector('.timestamp').textContent;
+                const logText = entry.querySelector('.logText').textContent;
+                const images = entry.querySelectorAll('img');
+                let imageText = '';
+                images.forEach((img, index) => {
+                    imageText += `Image ${index + 1}: ${img.src}\n`;
+                });
+                logContent += `Timestamp: ${timestamp}\n${logText}\n${imageText}\n\n`;
+            });
+
+            const blob = new Blob([logContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'logs.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // Image Pasting Functionality
+        logInput.addEventListener('paste', function(e) {
+            const items = e.clipboardData.items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const blob = items[i].getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        addLogEntry('', new Date().toLocaleString(), event.target.result);
+                    };
+                    reader.readAsDataURL(blob);
+                    e.preventDefault();
+                }
+            }
+        });
+
+        // Save logs when content is edited
+        logs.addEventListener('input', function(e) {
+            if (e.target.className === 'logText') {
+                saveLogsToStorage();
+            }
+        });
+
+        // Clear Logs Functionality
+        clearLogsBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to clear all logs? This action cannot be undone.')) {
+                localStorage.removeItem('logs');
+                logs.innerHTML = '';
+            }
+        });
+    </script>
+</body>
+</html>
